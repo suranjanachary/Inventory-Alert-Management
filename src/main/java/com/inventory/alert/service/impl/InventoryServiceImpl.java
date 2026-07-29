@@ -1,5 +1,6 @@
 package com.inventory.alert.service.impl;
 
+import com.inventory.alert.constants.CacheNames;
 import com.inventory.alert.dto.request.StockMutationRequest;
 import com.inventory.alert.dto.response.InventoryTransactionResponse;
 import com.inventory.alert.entity.InventoryTransaction;
@@ -16,6 +17,8 @@ import com.inventory.alert.service.InventoryService;
 import com.inventory.alert.service.support.RequestValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -38,6 +41,11 @@ public class InventoryServiceImpl implements InventoryService {
      */
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.PRODUCTS_BY_ID, key = "#request.productId"),
+            @CacheEvict(cacheNames = CacheNames.PRODUCTS_BY_SKU, allEntries = true),
+            @CacheEvict(cacheNames = CacheNames.LOW_STOCK, allEntries = true)
+    })
     public InventoryTransactionResponse purchaseStock(StockMutationRequest request) {
         requestValidator.validate(request);
         Product product = loadProduct(request.getProductId());
@@ -62,6 +70,11 @@ public class InventoryServiceImpl implements InventoryService {
      */
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.PRODUCTS_BY_ID, key = "#request.productId"),
+            @CacheEvict(cacheNames = CacheNames.PRODUCTS_BY_SKU, allEntries = true),
+            @CacheEvict(cacheNames = CacheNames.LOW_STOCK, allEntries = true)
+    })
     public InventoryTransactionResponse sellStock(StockMutationRequest request) {
         requestValidator.validate(request);
         Product product = loadProduct(request.getProductId());

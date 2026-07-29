@@ -1,5 +1,6 @@
 package com.inventory.alert.service.impl;
 
+import com.inventory.alert.constants.CacheNames;
 import com.inventory.alert.dto.request.ProductCreateRequest;
 import com.inventory.alert.dto.request.ProductUpdateRequest;
 import com.inventory.alert.dto.response.ProductResponse;
@@ -12,6 +13,9 @@ import com.inventory.alert.service.ProductService;
 import com.inventory.alert.service.support.RequestValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,14 +30,14 @@ public class ProductServiceImpl implements ProductService {
     private final ProductMapper productMapper;
     private final RequestValidator requestValidator;
 
-    /**
-     * Write TX: validate → uniqueness check → insert. Rolls back if unique constraint races.
-     */
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.PRODUCT_SEARCH, allEntries = true),
+            @CacheEvict(cacheNames = CacheNames.LOW_STOCK, allEntries = true)
+    })
     public ProductResponse createProduct(ProductCreateRequest request) {
         requestValidator.validate(request);
-        // Cheap existence probe before insert; DB unique index remains the final guard.
         if (productRepository.existsBySku(request.getSku())) {
             throw new DuplicateSkuException(request.getSku());
         }
@@ -46,11 +50,14 @@ public class ProductServiceImpl implements ProductService {
         return productMapper.toResponse(saved);
     }
 
-    /**
-     * Write TX: load → optional SKU conflict check → apply patch → flush (version bump).
-     */
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.PRODUCTS_BY_ID, key = "#id"),
+            @CacheEvict(cacheNames = CacheNames.PRODUCTS_BY_SKU, allEntries = true),
+            @CacheEvict(cacheNames = CacheNames.PRODUCT_SEARCH, allEntries = true),
+            @CacheEvict(cacheNames = CacheNames.LOW_STOCK, allEntries = true)
+    })
     public ProductResponse updateProduct(Long id, ProductUpdateRequest request) {
         requestValidator.validate(request);
         Product product = findProductOrThrow(id);
@@ -61,11 +68,14 @@ public class ProductServiceImpl implements ProductService {
         return productMapper.toResponse(saved);
     }
 
-    /**
-     * Soft delete only — preserves SKU uniqueness and ledger/alert history (FK RESTRICT).
-     */
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.PRODUCTS_BY_ID, key = "#id"),
+            @CacheEvict(cacheNames = CacheNames.PRODUCTS_BY_SKU, allEntries = true),
+            @CacheEvict(cacheNames = CacheNames.PRODUCT_SEARCH, allEntries = true),
+            @CacheEvict(cacheNames = CacheNames.LOW_STOCK, allEntries = true)
+    })
     public ProductResponse softDeleteProduct(Long id) {
         Product product = findProductOrThrow(id);
         product.setActive(Boolean.FALSE);
@@ -76,14 +86,15 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.PRODUCTS_BY_ID, key = "#id")
     public ProductResponse getProductById(Long id) {
         return productMapper.toResponse(findProductOrThrow(id));
     }
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.PRODUCTS_BY_SKU, key = "#sku")
     public ProductResponse getProductBySku(String sku) {
-        // Single indexed lookup by business key.
         Product product = productRepository
                 .findBySku(sku)
                 .orElseThrow(() -> new ProductNotFoundException(sku));
@@ -92,8 +103,10 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            cacheNames = CacheNames.PRODUCT_SEARCH,
+            key = "#name + ':' + #pageable.pageNumber + ':' + #pageable.pageSize + ':' + #pageable.sort")
     public Page<ProductResponse> searchProducts(String name, Pageable pageable) {
-        // JPQL LIKE search; pageable pushes LIMIT/OFFSET to the database.
         return productRepository.searchByName(name, pageable).map(productMapper::toResponse);
     }
 
@@ -106,8 +119,16 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public Page<ProductResponse> listActiveProducts(Pageable pageable) {
-        // Uses idx_products_active.
         return productRepository.findByActiveTrue(pageable).map(productMapper::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @Cacheable(
+            cacheNames = CacheNames.LOW_STOCK,
+            key = "#pageable.pageNumber + ':' + #pageable.pageSize")
+    public Page<ProductResponse> listLowStockProducts(Pageable pageable) {
+        return productRepository.findActiveBelowMinimum(pageable).map(productMapper::toResponse);
     }
 
     private Product findProductOrThrow(Long id) {
@@ -118,7 +139,6 @@ public class ProductServiceImpl implements ProductService {
         if (newSku == null || newSku.equals(product.getSku())) {
             return;
         }
-        // Exclude current row so renaming to the same SKU is a no-op above.
         if (productRepository.existsBySkuAndIdNot(newSku, product.getId())) {
             throw new DuplicateSkuException(newSku);
         }

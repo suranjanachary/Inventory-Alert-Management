@@ -1,0 +1,42 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:20}
+      minimum-idle: ${HIKARI_MIN_IDLE:5}
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  jpa:
+    show-sql: false
+
+app:
+  jwt:
+    # Required in production — application fails fast if blank (see JwtSecretValidator).
+    secret: ${JWT_SECRET}
+    expiration-ms: ${JWT_EXPIRATION_MS:900000}
+  scheduler:
+    alert-cron: ${ALERT_SCHEDULER_CRON:0 0 9 * * *}
+    enabled: ${ALERT_SCHEDULER_ENABLED:true}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: never
+
+springdoc:
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
+
+logging:
+  level:
+    root: WARN
+    com.inventory.alert: INFO

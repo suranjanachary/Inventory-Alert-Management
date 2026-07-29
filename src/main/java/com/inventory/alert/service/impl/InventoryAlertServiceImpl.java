@@ -13,6 +13,7 @@ import com.inventory.alert.repository.InventoryAlertRepository;
 import com.inventory.alert.repository.ProductRepository;
 import com.inventory.alert.service.InventoryAlertService;
 import java.time.Instant;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -92,6 +93,32 @@ public class InventoryAlertServiceImpl implements InventoryAlertService {
         alertRepository.save(alert);
         log.info("Low stock alert created productId={}", productId);
         return true;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<InventoryAlertResponse> findPendingAlertsForDispatch(Pageable pageable) {
+        return alertRepository
+                .findByStatus(AlertStatus.PENDING, pageable)
+                .map(alertMapper::toResponse);
+    }
+
+    /**
+     * Only transitions PENDING → SENT. Concurrent schedulers: second call sees non-PENDING and no-ops.
+     */
+    @Override
+    @Transactional
+    public Optional<InventoryAlertResponse> markAlertSent(Long alertId) {
+        InventoryAlert alert = alertRepository
+                .findById(alertId)
+                .orElseThrow(() -> new AlertNotFoundException(alertId));
+        if (alert.getStatus() != AlertStatus.PENDING) {
+            return Optional.empty();
+        }
+        alert.setStatus(AlertStatus.SENT);
+        InventoryAlert saved = alertRepository.save(alert);
+        log.info("Alert marked SENT id={} productId={}", saved.getId(), productId(saved));
+        return Optional.of(alertMapper.toResponse(saved));
     }
 
     private static Long productId(InventoryAlert alert) {

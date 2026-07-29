@@ -1,86 +1,114 @@
 # Inventory Alert Management
 
-Phase 1 scaffold: compile-ready Spring Boot skeleton with layered packages, config stubs, and Docker MySQL. No domain features yet.
+Production-oriented Spring Boot service for product catalog, stock mutations, and low-stock alerts with JWT RBAC.
 
-## Phase 5 — Security (JWT)
+## Architecture
 
-JWT auth, BCrypt, RBAC. See [`docs/phase-5-security.md`](docs/phase-5-security.md).
+```
+Controllers → Services → Repositories → MySQL
+                ↓
+         Scheduler (alert email mock)
+                ↓
+         Cache (product reads)
+```
 
-Dev admin (profile `dev`): `admin@inventory.local` / `AdminPass123!`
+Layered package layout under `com.inventory.alert` (controller / service / repository / entity / security / scheduler / config).
 
-## Phase 4 — REST API
+## Tech stack
 
-Controllers, global exception handling, Springdoc. See [`docs/phase-4-api.md`](docs/phase-4-api.md).
+- Java 17, Spring Boot 3.5.16
+- Spring Web, Data JPA, Security (JWT), Validation, Cache, Actuator
+- Flyway, MySQL 8, MapStruct, Lombok, springdoc OpenAPI
+- Docker / Docker Compose
 
-Swagger UI: http://localhost:8080/swagger-ui.html
+## Features
 
-## Phase 3 — Services
+- Product CRUD (soft delete), inventory purchase/sale + ledger
+- Low-stock alerts with daily 09:00 notification scheduler
+- JWT auth + ADMIN / MANAGER / VIEWER RBAC
+- Flyway migrations, Spring Cache, correlation-id request logging
+- Actuator health/liveness/readiness + metrics (+ prometheus)
 
-Business layer (Product / Inventory / Alerts). See [`docs/phase-3-services.md`](docs/phase-3-services.md).
-
-## Phase 2 — Persistence
-
-Database design, Flyway schema, JPA entities, repositories, and DTOs (no services yet).
-
-- Design notes: [`docs/database-design.md`](docs/database-design.md)
-- Annotations & self-review: [`docs/phase-2-persistence.md`](docs/phase-2-persistence.md)
-- Migration: `src/main/resources/db/migration/V1__create_inventory_schema.sql`
+## How to run (local)
 
 ```bash
-docker compose up -d
-mvn -q compile
-# After MySQL is healthy, Flyway runs on application start
+# Reset DB if upgrading from the old single V1 migration
+docker compose down -v
+docker compose up -d mysql
+
 mvn spring-boot:run
+# profile defaults to dev
 ```
 
-## Stack
-
-| Item | Choice |
-|------|--------|
-| Java | 17 (LTS; Boot 3.5 supports 17–25) |
-| Spring Boot | 3.5.16 (final OSS patch; **EOL for real production** — acceptable for this portfolio demo) |
-| Build | Single Maven module |
-| DB | MySQL 8 via Docker Compose (schema / Flyway in Phase 2) |
-
-## Quick start (local)
+## Docker (app + MySQL)
 
 ```bash
-# Start MySQL
-docker compose up -d
-
-# Compile (Phase 1 gate)
-mvn -q compile
-
-# Run (needs MySQL healthy; no business APIs yet)
-mvn spring-boot:run
+cp .env.example .env   # set JWT_SECRET for real use
+docker compose up -d --build
 ```
 
-- Swagger UI (once running): http://localhost:8080/swagger-ui.html
-- Actuator: http://localhost:8080/actuator/health
+- App: http://localhost:8080  
+- MySQL volume: `inventory_alert_mysql_data`  
+- App joins Docker network hostname `mysql`
 
-## Package layout
+## URLs
+
+| Resource | URL |
+|----------|-----|
+| Swagger UI (dev) | http://localhost:8080/swagger-ui.html |
+| OpenAPI | http://localhost:8080/v3/api-docs |
+| Health | http://localhost:8080/actuator/health |
+| Liveness | http://localhost:8080/actuator/health/liveness |
+| Readiness | http://localhost:8080/actuator/health/readiness |
+| Metrics | http://localhost:8080/actuator/metrics |
+| Prometheus | http://localhost:8080/actuator/prometheus |
+
+## Sample credentials
+
+| Email | Password | Role |
+|-------|----------|------|
+| `admin@inventory.local` | `AdminPass123!` | ADMIN (Flyway V5) |
+
+Register MANAGER/VIEWER via `POST /api/v1/auth/register`.
+
+## API flow
+
+1. `POST /api/v1/auth/login` → Bearer token  
+2. Authorize in Swagger or `Authorization: Bearer <token>`  
+3. Create product → purchase/sale → pending LOW_STOCK alert when qty ≤ minimum  
+4. Scheduler at 09:00 mocks email and marks alerts `SENT`  
+5. `PUT /api/v1/alerts/{id}/resolve` when handled
+
+## Folder structure
 
 ```
-com.inventory.alert/
-  config/ controller/ dto/{request,response}/ entity/ exception/
-  mapper/ repository/ security/ service/ scheduler/ util/ constants/
+src/main/java/com/inventory/alert/
+  config/ controller/ dto/ entity/ enums/ exception/
+  mapper/ repository/ scheduler/ security/ service/
+src/main/resources/
+  application.yml / application-dev.yml / application-prod.yml
+  db/migration/  logback-spring.xml
+docs/  Dockerfile  docker-compose.yml
 ```
 
-**Dependency rule:** Controllers never depend on entities; Repositories never depend on Controllers; Services own business rules.
+## Configuration
 
-## Phase 1 design decisions
+| Property | Purpose |
+|----------|---------|
+| `app.jwt.secret` / `JWT_SECRET` | Base64 HS256 key (required in prod) |
+| `app.jwt.expiration-ms` | Access token TTL |
+| `app.scheduler.alert-cron` | Cron for alert dispatch (`0 0 9 * * *`) |
+| `SPRING_PROFILES_ACTIVE` | `dev` or `prod` |
 
-1. **Single module (not multi-module)** — Matches the package layout, keeps the demo focused, faster review. Multi-module (`api` / `domain` / `infra`) is better for large teams but overkill here.
-2. **Temporary `permitAll` SecurityConfig** — Security and JWT deps are on the classpath early so later phases do not thrash `pom.xml`. Without an open chain, Boot’s default security would block `./mvn spring-boot:run` from day one. **PHASE 9** replaces this with JWT + authorization. This is demo pragmatism, not a production pattern.
-3. **Spring Boot 3.5.16 EOL** — Portfolio OK; do not treat as a production baseline without a supported Boot line.
-4. **Java 17 instead of 21** — Still a valid LTS for Boot 3.5; system JDK available. Documented deviation if an original brief preferred 21.
-5. **Lombok + MapStruct processor order** — Compiler annotation processor path is Lombok → lombok-mapstruct-binding → mapstruct-processor (common interview / build footgun).
-6. **`ddl-auto: none`** — No Flyway/Liquibase yet; schema design is Phase 2. App datasource points at Compose MySQL but does not mutate schema.
+## Documentation
 
-## What Phase 1 deliberately excludes
+- [`docs/phase-6-production.md`](docs/phase-6-production.md) — design decisions, ops notes, self-review, interview Qs  
+- Earlier phases: `docs/phase-2` … `phase-5`
 
-Entities, repositories, DTOs, services, controllers (beyond stubs), JWT logic, scheduler, Flyway, and feature tests. Next gate after review: Phase 2 database design / ERD / indexes / optimistic locking.
+## Future improvements
 
-## Later phases (reminder)
-
-2 DB design → 3 Entities → 4 Repositories → 5 DTOs → 6 Mappers → 7 Services → 8 Controllers → 9 Security → 10 Scheduler → 11 Testing → 12 Code review
+- Refresh tokens + rate limiting  
+- Redis cache / ShedLock for multi-instance schedulers  
+- Real email provider  
+- Kubernetes manifests + External Secrets  
+- Integration/E2E test suite  

@@ -3,13 +3,31 @@ spring:
     url: jdbc:mysql://localhost:3306/inventory_alert
     username: inventory
     password: inventory
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 5
   jpa:
     show-sql: true
     properties:
       hibernate:
         format_sql: true
 
+# Dev-only default JWT secret (override with JWT_SECRET). Never use in production.
+app:
+  jwt:
+    secret: ${JWT_SECRET:aW52ZW50b3J5LWFsZXJ0LWRlbW8tc2VjcmV0LWtleS0zMmJ5dGVzLQ==}
+  scheduler:
+    # Every day 09:00 server time; override for faster local demos e.g. 0 */1 * * * * (every minute)
+    alert-cron: ${ALERT_SCHEDULER_CRON:0 0 9 * * *}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,prometheus
+
 logging:
   level:
     org.hibernate.SQL: DEBUG
     org.hibernate.orm.jdbc.bind: TRACE
+    com.inventory.alert: DEBUG

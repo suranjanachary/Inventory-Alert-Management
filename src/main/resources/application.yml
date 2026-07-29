@@ -2,16 +2,10 @@ spring:
   application:
     name: inventory-alert-management
   profiles:
-    active: dev
-  datasource:
-    url: jdbc:mysql://localhost:3306/inventory_alert
-    username: inventory
-    password: inventory
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   jpa:
     open-in-view: false
     hibernate:
-      # Schema owned by Flyway; Hibernate must not mutate DDL.
       ddl-auto: validate
     properties:
       hibernate:
@@ -21,21 +15,44 @@ spring:
     locations: classpath:db/migration
   cache:
     type: simple
+  datasource:
+    hikari:
+      pool-name: inventory-hikari
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
 
 app:
   jwt:
-    # Base64-encoded 256-bit+ secret. Override with JWT_SECRET in real environments.
-    secret: ${JWT_SECRET:aW52ZW50b3J5LWFsZXJ0LWRlbW8tc2VjcmV0LWtleS0zMmJ5dGVzLQ==}
+    secret: ${JWT_SECRET:}
     expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+  scheduler:
+    alert-cron: ${ALERT_SCHEDULER_CRON:0 0 9 * * *}
+    enabled: ${ALERT_SCHEDULER_ENABLED:true}
+  cache:
+    products-by-id: productsById
+    products-by-sku: productsBySku
+    product-search: productSearch
+    low-stock: lowStockProducts
+  correlation:
+    header: X-Correlation-Id
 
 management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
   endpoint:
     health:
       show-details: when_authorized
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  info:
+    env:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
 
 springdoc:
   api-docs:
@@ -44,7 +61,13 @@ springdoc:
     path: /swagger-ui.html
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
+
+info:
+  app:
+    name: Inventory Alert Management
+    description: Inventory monitoring and low-stock alerts
+    version: 0.0.1-SNAPSHOT
 
 logging:
   level:

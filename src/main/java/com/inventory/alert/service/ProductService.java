@@ -23,4 +23,6 @@ public interface ProductService {
     Page<ProductResponse> listProducts(Pageable pageable);
 
     Page<ProductResponse> listActiveProducts(Pageable pageable);
+
+    Page<ProductResponse> listLowStockProducts(Pageable pageable);
 }

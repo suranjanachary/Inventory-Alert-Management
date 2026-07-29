@@ -54,6 +54,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                     .user(toAuthUser(principal))
                     .build();
         } catch (BadCredentialsException | DisabledException ex) {
+            log.warn("Authentication failed email={}", request.getEmail());
             throw new InvalidCredentialsException();
         }
     }

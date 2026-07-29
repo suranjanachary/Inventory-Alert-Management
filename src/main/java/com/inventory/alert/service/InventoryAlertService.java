@@ -1,6 +1,7 @@
 package com.inventory.alert.service;
 
 import com.inventory.alert.dto.response.InventoryAlertResponse;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -21,4 +22,14 @@ public interface InventoryAlertService {
      * @return true if a new alert was created
      */
     boolean ensurePendingLowStockAlert(Long productId, String message);
+
+    /**
+     * Loads PENDING alerts for the notification scheduler (bounded page).
+     */
+    Page<InventoryAlertResponse> findPendingAlertsForDispatch(Pageable pageable);
+
+    /**
+     * Idempotent PENDING → SENT transition. Returns empty if already processed.
+     */
+    Optional<InventoryAlertResponse> markAlertSent(Long alertId);
 }

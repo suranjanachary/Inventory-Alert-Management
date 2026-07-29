@@ -75,7 +75,8 @@ public class SecurityConfig {
                                 "/v3/api-docs",
                                 "/v3/api-docs/**",
                                 "/actuator/health",
-                                "/actuator/health/**")
+                                "/actuator/health/**",
+                                "/actuator/info")
                         .permitAll()
                         // Products — reads
                         .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/**")
