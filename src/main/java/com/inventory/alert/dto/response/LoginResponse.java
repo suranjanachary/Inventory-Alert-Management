@@ -6,11 +6,11 @@ import lombok.Getter;
 
 @Getter
 @Builder
-@Schema(description = "Placeholder auth response until JWT is implemented")
-public class AuthTokenResponse {
+@Schema(description = "Successful login response with JWT")
+public class LoginResponse {
 
     private String accessToken;
     private String tokenType;
-    private long expiresInSeconds;
-    private String message;
+    private long expiresIn;
+    private AuthUserResponse user;
 }

@@ -22,6 +22,12 @@ spring:
   cache:
     type: simple
 
+app:
+  jwt:
+    # Base64-encoded 256-bit+ secret. Override with JWT_SECRET in real environments.
+    secret: ${JWT_SECRET:aW52ZW50b3J5LWFsZXJ0LWRlbW8tc2VjcmV0LWtleS0zMmJ5dGVzLQ==}
+    expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+
 management:
   endpoints:
     web:

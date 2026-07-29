@@ -2,6 +2,12 @@
 
 Phase 1 scaffold: compile-ready Spring Boot skeleton with layered packages, config stubs, and Docker MySQL. No domain features yet.
 
+## Phase 5 — Security (JWT)
+
+JWT auth, BCrypt, RBAC. See [`docs/phase-5-security.md`](docs/phase-5-security.md).
+
+Dev admin (profile `dev`): `admin@inventory.local` / `AdminPass123!`
+
 ## Phase 4 — REST API
 
 Controllers, global exception handling, Springdoc. See [`docs/phase-4-api.md`](docs/phase-4-api.md).

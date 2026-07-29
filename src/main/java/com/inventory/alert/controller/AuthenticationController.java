@@ -1,18 +1,20 @@
 package com.inventory.alert.controller;
 
 import com.inventory.alert.dto.request.LoginRequest;
-import com.inventory.alert.dto.request.UserCreateRequest;
-import com.inventory.alert.dto.response.AuthTokenResponse;
+import com.inventory.alert.dto.request.RegisterRequest;
 import com.inventory.alert.dto.response.ErrorResponse;
-import com.inventory.alert.exception.ErrorCodes;
+import com.inventory.alert.dto.response.LoginResponse;
+import com.inventory.alert.dto.response.RegisterResponse;
+import com.inventory.alert.service.AuthenticationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.time.Instant;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,73 +24,48 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Auth API contract only. JWT issuance and password verification land in Phase 9.
- * Passwords are never logged.
+ * Public authentication endpoints. Passwords are never logged.
  */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/auth")
+@RequiredArgsConstructor
 @Tag(name = "Authentication")
+@SecurityRequirements
 public class AuthenticationController {
 
+    private final AuthenticationService authenticationService;
+
     @PostMapping("/login")
-    @Operation(
-            summary = "Login (placeholder)",
-            description = "Validates the request body shape. Returns 501 until JWT is implemented.")
+    @Operation(summary = "Login", description = "Validates credentials and returns a signed JWT.")
     @ApiResponses({
-            @ApiResponse(
-                    responseCode = "501",
-                    description = "JWT not implemented",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "200", description = "Authenticated"),
             @ApiResponse(
                     responseCode = "400",
                     description = "Validation failed",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Invalid credentials",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    public ResponseEntity<ErrorResponse> login(@Valid @RequestBody LoginRequest request) {
-        log.info("API login placeholder email={}", request.getEmail());
-        return notImplemented("/api/v1/auth/login", "JWT login is not implemented yet (Phase 9)");
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        log.info("API login email={}", request.getEmail());
+        return ResponseEntity.ok(authenticationService.login(request));
     }
 
     @PostMapping("/register")
     @Operation(
-            summary = "Register (placeholder)",
-            description = "Validates registration payload. Persistence + hashing deferred to Phase 9.")
+            summary = "Register",
+            description = "Creates MANAGER or VIEWER accounts with BCrypt-hashed passwords. ADMIN is not allowed.")
     @ApiResponses({
-            @ApiResponse(
-                    responseCode = "501",
-                    description = "Registration not implemented",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Validation failed", content = @Content)
+            @ApiResponse(responseCode = "201", description = "Registered"),
+            @ApiResponse(responseCode = "400", description = "Validation / invalid role", content = @Content),
+            @ApiResponse(responseCode = "409", description = "Email already exists", content = @Content)
     })
-    public ResponseEntity<ErrorResponse> register(@Valid @RequestBody UserCreateRequest request) {
-        log.info("API register placeholder email={}", request.getEmail());
-        return notImplemented("/api/v1/auth/register", "User registration is not implemented yet (Phase 9)");
-    }
-
-    @PostMapping("/token-preview")
-    @Operation(
-            summary = "Document expected token response shape",
-            description = "Does not issue tokens. Shows the AuthTokenResponse schema for clients.")
-    @ApiResponse(responseCode = "200", description = "Example payload only")
-    public ResponseEntity<AuthTokenResponse> tokenPreview() {
-        return ResponseEntity.ok(AuthTokenResponse.builder()
-                .accessToken("<jwt-placeholder>")
-                .tokenType("Bearer")
-                .expiresInSeconds(3600)
-                .message("Illustrative response; real tokens arrive in Phase 9")
-                .build());
-    }
-
-    private static ResponseEntity<ErrorResponse> notImplemented(String path, String message) {
-        ErrorResponse body = ErrorResponse.builder()
-                .timestamp(Instant.now())
-                .status(HttpStatus.NOT_IMPLEMENTED.value())
-                .error("Not Implemented")
-                .message(message)
-                .path(path)
-                .errorCode(ErrorCodes.NOT_IMPLEMENTED)
-                .build();
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(body);
+    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
+        log.info("API register email={} role={}", request.getEmail(), request.getRole());
+        RegisterResponse body = authenticationService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(body);
     }
 }

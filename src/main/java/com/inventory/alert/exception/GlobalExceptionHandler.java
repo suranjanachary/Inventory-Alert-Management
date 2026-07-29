@@ -19,6 +19,36 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCredentials(
+            InvalidCredentialsException ex, HttpServletRequest request) {
+        return build(
+                HttpStatus.UNAUTHORIZED,
+                "Unauthorized",
+                ex.getMessage(),
+                request,
+                ErrorCodes.INVALID_CREDENTIALS,
+                null);
+    }
+
+    @ExceptionHandler(DuplicateEmailException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateEmail(
+            DuplicateEmailException ex, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, "Conflict", ex.getMessage(), request, ErrorCodes.DUPLICATE_EMAIL, null);
+    }
+
+    @ExceptionHandler(InvalidRegistrationRoleException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRegistrationRole(
+            InvalidRegistrationRoleException ex, HttpServletRequest request) {
+        return build(
+                HttpStatus.BAD_REQUEST,
+                "Bad Request",
+                ex.getMessage(),
+                request,
+                ErrorCodes.INVALID_REGISTRATION_ROLE,
+                null);
+    }
+
     @ExceptionHandler(ProductNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleProductNotFound(
             ProductNotFoundException ex, HttpServletRequest request) {
