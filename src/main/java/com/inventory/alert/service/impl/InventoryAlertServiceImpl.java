@@ -38,6 +38,12 @@ public class InventoryAlertServiceImpl implements InventoryAlertService {
                 .map(alertMapper::toResponse);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Page<InventoryAlertResponse> getAlerts(Pageable pageable) {
+        return alertRepository.findAllWithProduct(pageable).map(alertMapper::toResponse);
+    }
+
     /**
      * Write TX: status flip + resolvedAt must persist together.
      */

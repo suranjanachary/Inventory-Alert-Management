@@ -8,6 +8,8 @@ public interface InventoryAlertService {
 
     Page<InventoryAlertResponse> getPendingAlerts(Pageable pageable);
 
+    Page<InventoryAlertResponse> getAlerts(Pageable pageable);
+
     InventoryAlertResponse resolveAlert(Long alertId);
 
     Page<InventoryAlertResponse> getAlertsByProduct(Long productId, Pageable pageable);

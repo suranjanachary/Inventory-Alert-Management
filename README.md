@@ -2,6 +2,12 @@
 
 Phase 1 scaffold: compile-ready Spring Boot skeleton with layered packages, config stubs, and Docker MySQL. No domain features yet.
 
+## Phase 4 — REST API
+
+Controllers, global exception handling, Springdoc. See [`docs/phase-4-api.md`](docs/phase-4-api.md).
+
+Swagger UI: http://localhost:8080/swagger-ui.html
+
 ## Phase 3 — Services
 
 Business layer (Product / Inventory / Alerts). See [`docs/phase-3-services.md`](docs/phase-3-services.md).
