@@ -2,6 +2,10 @@
 
 Phase 1 scaffold: compile-ready Spring Boot skeleton with layered packages, config stubs, and Docker MySQL. No domain features yet.
 
+## Phase 3 — Services
+
+Business layer (Product / Inventory / Alerts). See [`docs/phase-3-services.md`](docs/phase-3-services.md).
+
 ## Phase 2 — Persistence
 
 Database design, Flyway schema, JPA entities, repositories, and DTOs (no services yet).
