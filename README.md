@@ -2,6 +2,21 @@
 
 Phase 1 scaffold: compile-ready Spring Boot skeleton with layered packages, config stubs, and Docker MySQL. No domain features yet.
 
+## Phase 2 — Persistence
+
+Database design, Flyway schema, JPA entities, repositories, and DTOs (no services yet).
+
+- Design notes: [`docs/database-design.md`](docs/database-design.md)
+- Annotations & self-review: [`docs/phase-2-persistence.md`](docs/phase-2-persistence.md)
+- Migration: `src/main/resources/db/migration/V1__create_inventory_schema.sql`
+
+```bash
+docker compose up -d
+mvn -q compile
+# After MySQL is healthy, Flyway runs on application start
+mvn spring-boot:run
+```
+
 ## Stack
 
 | Item | Choice |

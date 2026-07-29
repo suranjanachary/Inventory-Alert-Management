@@ -11,11 +11,14 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      # Schema migrations arrive in Phase 2; keep Hibernate from mutating the DB until then.
-      ddl-auto: none
+      # Schema owned by Flyway; Hibernate must not mutate DDL.
+      ddl-auto: validate
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
   cache:
     type: simple
 
