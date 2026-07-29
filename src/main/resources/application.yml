@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: inventory-alert-management
+  profiles:
+    active: dev
+  datasource:
+    url: jdbc:mysql://localhost:3306/inventory_alert
+    username: inventory
+    password: inventory
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      # Schema migrations arrive in Phase 2; keep Hibernate from mutating the DB until then.
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+  cache:
+    type: simple
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+    com.inventory.alert: INFO
