@@ -9,8 +9,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 public interface InventoryAlertRepository extends JpaRepository<InventoryAlert, Long> {
+
+    @EntityGraph(attributePaths = "product")
+    @Query("SELECT a FROM InventoryAlert a")
+    Page<InventoryAlert> findAllWithProduct(Pageable pageable);
 
     @EntityGraph(attributePaths = "product")
     Page<InventoryAlert> findByStatus(AlertStatus status, Pageable pageable);
