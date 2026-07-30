@@ -88,8 +88,18 @@ src/main/java/com/inventory/alert/
 src/main/resources/
   application.yml / application-dev.yml / application-prod.yml
   db/migration/  logback-spring.xml
-docs/  Dockerfile  docker-compose.yml
+src/test/java/ … unit + Testcontainers IT
+docs/  AI_PROMPTS.md  Dockerfile  docker-compose.yml
 ```
+
+## Testing
+
+```bash
+mvn test                 # unit + Testcontainers IT (Docker required for *IT)
+mvn test -Dtest='*Test'  # unit only
+```
+
+See [`docs/phase-7-testing.md`](docs/phase-7-testing.md).
 
 ## Configuration
 
@@ -102,8 +112,11 @@ docs/  Dockerfile  docker-compose.yml
 
 ## Documentation
 
-- [`docs/phase-6-production.md`](docs/phase-6-production.md) — design decisions, ops notes, self-review, interview Qs  
-- Earlier phases: `docs/phase-2` … `phase-5`
+- [`docs/architecture.md`](docs/architecture.md) — diagrams
+- [`docs/interview-prep.md`](docs/interview-prep.md) — interview Qs
+- [`docs/phase-7-testing.md`](docs/phase-7-testing.md) / [`docs/phase-8-final-review.md`](docs/phase-8-final-review.md)
+- [`AI_PROMPTS.md`](AI_PROMPTS.md) — Cursor workflow used to build this repo
+- Earlier phases: `docs/phase-2` … `phase-6`
 
 ## Future improvements
 
